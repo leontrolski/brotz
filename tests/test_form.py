@@ -1,10 +1,7 @@
-from collections import defaultdict
-
 from brotz import Form, Ul, Li, Input, exists, not_exists
 import brotz.form
-from werkzeug.datastructures import ImmutableMultiDict
 
-data_in = {
+fake_data_in = {
     'customer': {
         'name': 'Oli',
         'street': 'London Road',
@@ -12,25 +9,26 @@ data_in = {
         'product': [
             {
                 'name': 'dog',
-                'price': '21.0',
+                'price': 21.0,
                 'to-delete': False,
                 'dimension': [
-                    {'width': '3'},
-                    {'width': '2'},
-                    {'width': '0'},
+                    {'width': 3},
+                    {'width': 2},
+                    {'width': 0},
                 ]
             },
             {
                 'name': 'cat',
-                'price': '42.0',
+                'price': 42.0,
                 'to-delete': True,
                 'dimension': [
-                    {'width': '5'}
+                    {'width': 5}
                 ]
             }
         ]
     }
 }
+
 
 nested_form = Form(brotz.form.Nested('customer',
     Input(name='name', value='Oli'),
@@ -40,26 +38,25 @@ nested_form = Form(brotz.form.Nested('customer',
     Ul(brotz.form.NestedList('product',
         Li(
             Input(name='name', value='dog'),
-            Input(name='price', value='21.0'),
+            Input(name='price', value=21.0),
             Input(name='to-delete', type='checkbox', checked=not_exists),
             brotz.form.NestedList('dimension',
-                Input(name='width', value='3'),
-                Input(name='width', value='2'),
-                Input(name='width', value='0'))
+                Input(name='width', value=3),
+                Input(name='width', value=2),
+                Input(name='width', value=0))
         ),
         Li(
             Input(name='name', value='cat'),
-            Input(name='price', value='42.0'),
+            Input(name='price', value=42.0),
             Input(name='to-delete', type='checkbox', checked=exists),
             brotz.form.NestedList('dimension',
-                Input(name='width', value='5'))
+                Input(name='width', value=5))
         ),
     ))
 ))
 
 
 def test_parents_added():
-    # print str(nested_form)
     oli_input = nested_form.children[0].children[0]
     assert oli_input.attributes['value'] == 'Oli'
 
@@ -70,8 +67,6 @@ def test_parents_added():
     dimension_nested_list = nested_form.children[0].children[3].children[0].children[0].children[3]
     assert dimension_nested_list.obj_name == 'dimension'
     assert dimension_nested_list.form_parent_strs == ['customer', 'product', '0']
-    # assert dimension_nested_list.nest_index == 0
-    # need to test for nested indexes
 
 
 def test_form_render():
@@ -101,95 +96,75 @@ def test_form_render():
     ]
 
 
-def test_default_dict_list():
-    a = brotz.form.DefaultDictList()
-    a[0] = 42
-    assert a.value == [42]
-    b = brotz.form.DefaultDictList()
-    b['yo'][84]['ahoy'] = 56
-    assert b['yo'][84].value == {'ahoy': 56}
+fake_post_from_form = {
+    'BROTZ[customer][name]': 'Oli',
+    'BROTZ[customer][street]': 'London Road',
+    'BROTZ[customer][group][type]': 'best-customers',
+    'BROTZ[customer][product][0][name]': 'dog',
+    'BROTZ[customer][product][0][price]': '21.0',
+    'BROTZ[customer][product][0][dimension][0][width]': '3',
+    'BROTZ[customer][product][0][dimension][1][width]': '2',
+    'BROTZ[customer][product][0][dimension][2][width]': '0',
+    'BROTZ[customer][product][1][name]': 'cat',
+    'BROTZ[customer][product][1][price]': '42.0',
+    'BROTZ[customer][product][1][to-delete]': 'on',
+    'BROTZ[customer][product][1][dimension][0][width]': '5',
+}
+
+expected_data_out = {
+    'customer': {
+        'name': 'Oli',
+        'street': 'London Road',
+        'group': {'type': 'best-customers'},
+        'product': [
+            {
+                'name': 'dog',
+                'price': '21.0',
+                'dimension': [
+                    {'width': '3'},
+                    {'width': '2'},
+                    {'width': '0'},
+                ]
+            },
+            {
+                'name': 'cat',
+                'price': '42.0',
+                'to-delete': 'on',
+                'dimension': [
+                    {'width': '5'}
+                ]
+            }
+        ]
+    }
+}
 
 
-# fake_post_from_form = ImmutableMultiDict((
-#     ('brotz_customer_name', ['Oli']),
-#     ('brotz_customer_street', ['London Road']),
-#     ('brotz_group_type', ['best-customers']),
-#     ('brotz_product_name', ['dog', 'cat']),
-#     ('brotz_product_price', ['21.0', '42.0']),
-#     ('brotz_checkbox_product_to-delete', ['1']),
-#     ('brotz_dimension_0_width', ['3', '2', '0']),
-#     ('brotz_dimension_1_width', ['5']),
-# ))
-#
-# structured_data = defaultdict(lambda: defaultdict(dict))
-#
-# for k, v in fake_post_from_form.items():
-#     if k.startswith('brotz_'):
-#         is_checkbox = False
-#         split = k.split('_')
-#         split.pop(0)
-#         if split[0] == 'checkbox':
-#             split.pop(0)
-#             v = [int(n) for n in v]
-#             split[-1] += '_checkbox'
-#         obj_name = split.pop(0)
-#         original_name = split.pop()
-#         nest_indexes = tuple(int(n) for n in split)
-#         structured_data[obj_name][nest_indexes][original_name] = v
-#
-# data_shape = {'customer': (
-#     'group',
-#     {('product', ): (('dimension',),)},
-# )}
-#
-# data_out = {}
-# data_out['customer'] = {
-#     'name': structured_data['customer'][()]['name'][0],
-#     'street': structured_data['customer'][()]['street'][0],
-#     'group': {'type': structured_data['group'][()]['type'][0]}
-# }
-# data_out['customer']['product'] = [
-#     {
-#         'name': structured_data['product'][()]['name'][i],
-#         'price':  structured_data['product'][()]['price'][i],
-#         'to-delete':  i in structured_data['product'][()]['to-delete_checkbox'],
-#         'dimension':  [
-#             {'width': w} for w in structured_data['dimension'][(i,)]['width']],
-#     } for i in (0, 1)]
-#
-#
-# assert data_out == data_in
-#
-#
-# def structured_data_to_data_out(data_shape, structured_data, level=0):
-#     d = {}
-#     for k, v in data_shape.items():
-#         if isinstance(k, str):
-#             d[k] = {}
-#             for original_name in structured_data[k][()]:
-#                 d[k][original_name] = structured_data[k][()][original_name][0]
-#             for tuple_el in v:
-#                 if isinstance(tuple_el, str):
-#                     d[k][tuple_el] = {}
-#                     for other_original_name in structured_data[tuple_el][()]:
-#                         d[k][tuple_el][other_original_name] = structured_data[tuple_el][()][other_original_name][0]
-#                 elif isinstance(tuple_el, tuple):
-#                     print 'inner tuple', tuple_el
-#                 elif isinstance(tuple_el, dict):
-#                     print 'inner dict', tuple_el
-#                     print structured_data_to_data_out(tuple_el, structured_data)
-#         elif isinstance(k, tuple):
-#             d[k[0]] = []
-#
-#             for original_name in structured_data[k[0]][()]:
-#                 if original_name.endswith('checkbox'):
-#                     pass
-#
-#                 import pdb; pdb.set_trace()
-#                 print 'tuple inner', original_name
-#
-#             print 'outer tuple', k, d, structured_data[k[0]]
-#             # return k
-#     return d
-#
-# print structured_data_to_data_out(data_shape, structured_data)
+def test_parse_post():
+    assert brotz.form.parse_post(fake_post_from_form) == expected_data_out
+
+
+def test_marshmallowed():
+    from marshmallow import Schema, fields
+
+    class Dimension(Schema):
+        width = fields.Int()
+
+    class Product(Schema):
+        name = fields.Str()
+        price = fields.Float()
+        to_delete = fields.Bool(
+            attribute='to-delete', dump_to='to-delete', default=False)
+        dimension = fields.Nested(Dimension(), many=True)
+
+    class Group(Schema):
+        type = fields.Str()
+
+    class Customer(Schema):
+        name = fields.Str()
+        street = fields.Str()
+        group = fields.Nested(Group())
+        product = fields.Nested(Product(), many=True)
+
+    assert Customer().dump(
+        expected_data_out['customer']).data == fake_data_in['customer']
+

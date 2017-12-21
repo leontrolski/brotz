@@ -1,4 +1,5 @@
 from collections import deque
+import re
 
 from . import BaseTag, Empty
 
@@ -32,7 +33,6 @@ class BaseNested(Empty):
 
     def __init__(self, obj_name, *args, **kwargs):
         self.obj_name = obj_name
-        self.nest_index = None
         self.form_parents = deque()
         super(BaseNested, self).__init__(*args, **kwargs)
         add_parents_to_children(self)
@@ -48,7 +48,8 @@ class BaseNested(Empty):
             ''.join('[{}]'.format(p) for p in self.form_parent_strs),
             self.obj_name,
             '[{}]'.format(i) if self.is_list else '',
-            name_attr)
+            name_attr
+        )
 
     @property
     def inner_str(self):
@@ -74,35 +75,30 @@ class NestedList(BaseNested):
 
 
 class MagicList(list):
-    def __setitem__(self, key, value):
-        try:
-            super(MagicList, self).__setitem__(key, value)
-        except IndexError:
-            self.append(None)
-            self.__setitem__(key, value)
+    def get(self, index):
+        return None if index >= len(self) else self[index]
+
+    def __setitem__(self, index, value):
+        self += [None] * (index - len(self) + 1)
+        super(MagicList, self).__setitem__(index, value)
 
 
-class DefaultDictList(object):
-    def __init__(self):
-        self.value = None
-
-    def init(self, key):
-        if isinstance(key, int):
-            if self.value is None:
-                self.value = MagicList()
-            elif not isinstance(self.value, list):
-                raise RuntimeError('cant construct DefaultList')
-        else:
-            if self.value is None:
-                self.value = {}
-            elif not isinstance(self.value, dict):
-                raise RuntimeError('cant construct DefaultDict')
-
-    def __getitem__(self, item):
-        self.init(item)
-        return self
-
-    def __setitem__(self, key, value):
-        self.init(key)
-        self.value[key] = value
-
+def parse_post(post_dict):
+    out = {}
+    for name, value in post_dict.items():
+        tmp = out
+        if name.startswith('BROTZ'):
+            keys = re.findall(r'\[(.+?)\]', name)
+            for key, next_key in zip(keys, keys[1:] + [None]):
+                if next_key is None:
+                    tmp[key] = value
+                    continue
+                if key.isdigit():
+                    key = int(key)
+                if not tmp.get(key):
+                    if next_key.isdigit():
+                        tmp[key] = MagicList()
+                    else:
+                        tmp[key] = {}
+                tmp = tmp[key]
+    return out

@@ -1,6 +1,7 @@
 import cgi
 from types import GeneratorType
 
+
 exists = object()
 not_exists = object()
 
