@@ -53,13 +53,17 @@ class BaseNested(Empty):
 
     @property
     def inner_str(self):
+        reset_map = {}  # to reset .attributes['name'] after mutation
         for i, child in enumerate(self.children):
             for n in yield_until_nested(child):
-                attrs = n.attributes
-                if 'name' in attrs:
-                    # mutate other tag's attributes, urgh
-                    attrs['name'] = self.nested_name(attrs['name'], i)
-        return super(BaseNested, self).inner_str
+                if 'name' in n.attributes:
+                    reset_map[n] = n.attributes['name']
+                    n.attributes['name'] = self.nested_name(
+                        n.attributes['name'], i)
+        to_return = super(BaseNested, self).inner_str
+        for k, v in reset_map.items():
+            k.attributes['name'] = reset_map[k]
+        return to_return
 
 
 class Nested(BaseNested):
@@ -75,6 +79,7 @@ class NestedList(BaseNested):
 
 
 class MagicList(list):
+    """List that extends itself if the index to set is out of range."""
     def get(self, index):
         return None if index >= len(self) else self[index]
 
