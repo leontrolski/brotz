@@ -62,13 +62,17 @@ Tag elements have `.attributes` (`dict`), `.children` (`list`), `.parent` (`brot
 
 brotz.form sorts out the html form<->object impedence mismatch:
 - Wrap brotz structures with `brotz.form.Nested` and `brotz.form.NestedList`.
-- On `str`-ifying, any `name` attributes in these wrapped structures are prefixed with `"BROTZ"` and have `[attibute/index]`s added to them.
+- On `str`-ifying, any `name` attributes in these wrapped structures are prefixed with `"BROTZ"` and have `[attribute/index]`s added to them.
 - Serve the form.
 - The form is GET/POSTed to the server as `dict` with name eg: `form_data`
 - `brotz.form.parse_post(form_data)` returns the data in the correct stucture.
 
-Try follow the examples in `tests/test_form.py` to get the idea
+Try follow the examples in [`tests/test_form.py`](tests/test_form.py) to get the idea
 
 # development
 
 run `py.test` to run tests.
+
+# thanks
+
+brotz was heavily inspired by [mithril](https://github.com/MithrilJS/mithril.js), thanks Leo!
