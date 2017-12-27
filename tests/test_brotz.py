@@ -1,5 +1,5 @@
-from brotz import (
-    Div, Ul, Li, Table, Th, Tr, Td, Input, br, exists, not_exists)
+from brotz import T, exists, not_exists
+from brotz.tags import Div, Ul, Li, Table, Th, Tr, Td, Input, br
 
 
 data = [
@@ -44,3 +44,8 @@ def test_page():
             '<input  value="buttshoe"></input>'
         '</div>'
     )
+
+
+def test_attribute_error():
+    assert str(Div(T([]).whut, 42)) == '<div>42</div>'
+    assert str(Div(T(None, 'haha'), 84)) == '<div>haha84</div>'

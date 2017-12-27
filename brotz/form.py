@@ -1,7 +1,8 @@
 from collections import deque
 import re
 
-from . import BaseTag, Empty
+from . import BaseTag
+from .tags import Empty
 
 
 def yield_until_nested(tag):
@@ -20,22 +21,24 @@ def yield_only_nested(tag):
             yield n
 
 
-def add_parents_to_children(tag):
-    for i, child in enumerate(tag.children):
-        for n in yield_only_nested(child):
-            if isinstance(tag, NestedList):
-                n.form_parents.appendleft(i)
-            n.form_parents.appendleft(tag)
+def bracket(s, cond=True):
+    return '[{}]'.format(s) if cond else ''
 
 
 class BaseNested(Empty):
     is_list = False
+    overwrite_property = 'name'
 
     def __init__(self, obj_name, *args, **kwargs):
+        super(BaseNested, self).__init__(*args, **kwargs)
+
         self.obj_name = obj_name
         self.form_parents = deque()
-        super(BaseNested, self).__init__(*args, **kwargs)
-        add_parents_to_children(self)
+        for i, child in enumerate(self.children):
+            for n in yield_only_nested(child):
+                if self.is_list:
+                    n.form_parents.appendleft(i)
+                n.form_parents.appendleft(self)
 
     @property
     def form_parent_strs(self):
@@ -44,25 +47,25 @@ class BaseNested(Empty):
             for p in self.form_parents]
 
     def nested_name(self, name_attr, i):
-        return 'BROTZ{}[{}]{}[{}]'.format(
-            ''.join('[{}]'.format(p) for p in self.form_parent_strs),
-            self.obj_name,
-            '[{}]'.format(i) if self.is_list else '',
-            name_attr
+        return 'BROTZ{}{}{}{}'.format(
+            ''.join(bracket(p) for p in self.form_parent_strs),
+            bracket(self.obj_name),
+            bracket(i, self.is_list),
+            bracket(name_attr),
         )
 
     @property
     def inner_str(self):
-        reset_map = {}  # to reset .attributes['name'] after mutation
+        reset_map = {}  # to reset `overwrite_property` after mutation
         for i, child in enumerate(self.children):
             for n in yield_until_nested(child):
-                if 'name' in n.attributes:
-                    reset_map[n] = n.attributes['name']
-                    n.attributes['name'] = self.nested_name(
-                        n.attributes['name'], i)
+                if self.overwrite_property in n.attributes:
+                    reset_map[n] = n.attributes[self.overwrite_property]
+                    n.attributes[self.overwrite_property] = self.nested_name(
+                        n.attributes[self.overwrite_property], i)
         to_return = super(BaseNested, self).inner_str
         for k, v in reset_map.items():
-            k.attributes['name'] = reset_map[k]
+            k.attributes[self.overwrite_property] = reset_map[k]
         return to_return
 
 

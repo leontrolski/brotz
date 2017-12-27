@@ -1,4 +1,5 @@
-from brotz import Form, Ul, Li, Input, exists, not_exists
+from brotz import exists, not_exists
+from brotz.tags import Div, Form, Ul, Li, Input
 import brotz.form
 import pytest
 
@@ -15,6 +16,26 @@ def test_a_small_bit():
         'BROTZ[animals][0][name]': 'dog',
         'BROTZ[animals][1][name]': 'cat',
     }) == {'animals': [{'name': 'dog'}, {'name': 'cat'}]}
+
+
+def test_existing_and_two_nested():
+    form = Div(
+        Input(name='existing', value='existing-value'),
+        brotz.form.Nested('ant', Input(name='legs', value=6)),
+        brotz.form.Nested('bear', Input(name='legs', value=4)),
+    )
+    assert str(form) == (
+        '<div>'
+            '<input name="existing" value="existing-value"></input>'
+            '<input name="BROTZ[ant][legs]" value="6"></input>'
+            '<input name="BROTZ[bear][legs]" value="4"></input>'
+        '</div>'
+    )
+    assert brotz.form.parse_post({
+        'existing': 'existing-value',
+        'BROTZ[ant][legs]': '6',
+        'BROTZ[bear][legs]': '4',
+    }) == {'ant': {'legs': '6'}, 'bear': {'legs': '4'}}
 
 
 def test_nested_lists():
@@ -60,30 +81,27 @@ fake_data_in = {
 }
 
 
-nested_form = Form(brotz.form.Nested('customer',
-    Input(name='name', value='Oli'),
-    Input(name='street', value='London Road'),
-    brotz.form.Nested('group',
-        Input(name='type', value='best-customers')),
-    Ul(brotz.form.NestedList('products',
-        Li(
-            Input(name='name', value='dog'),
-            Input(name='price', value=21.0),
-            Input(name='to-delete', type='checkbox', checked=not_exists),
-            brotz.form.NestedList('dimensions',
-                Input(name='width', value=3),
-                Input(name='width', value=2),
-                Input(name='width', value=0))
-        ),
-        Li(
-            Input(name='name', value='cat'),
-            Input(name='price', value=42.0),
-            Input(name='to-delete', type='checkbox', checked=exists),
-            brotz.form.NestedList('dimensions',
-                Input(name='width', value=5))
-        ),
-    ))
-))
+def product(p):
+    return (
+        Input(name='name', value=p['name']),
+        Input(name='price', value=p['price']),
+        Input(name='to-delete', type='checkbox',
+              checked=exists if p['to-delete'] else not_exists),
+        brotz.form.NestedList('dimensions', (
+            Input(name='width', value=d['width']) for d in p['dimensions'])))
+
+
+def customer(c):
+    return Form(brotz.form.Nested('customer',
+        Input(name='name', value=c['name']),
+        Input(name='street', value=c['street']),
+        brotz.form.Nested('group',
+            Input(name='type', value=c['group']['type'])),
+        Ul(brotz.form.NestedList('products', (
+            Li(product(p)) for p in c['products'])))))
+
+
+nested_form = customer(fake_data_in['customer'])
 
 expected_form_split = [
     '<form',
