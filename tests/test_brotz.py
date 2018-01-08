@@ -47,5 +47,5 @@ def test_page():
 
 
 def test_attribute_error():
-    assert str(Div(T([]).whut, 42)) == '<div>42</div>'
+    assert str(Div(T([]).whut.where, 42)) == '<div>42</div>'
     assert str(Div(T(None, 'haha'), 84)) == '<div>haha84</div>'

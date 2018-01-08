@@ -77,29 +77,6 @@ class BaseTag(object):
     def __eq__(self, other):
         return str(self) == str(other)
 
-    # WIP quining stuff, not stable
-    @property
-    def _attributes_code(self):
-        if not self.attributes:
-            return ''
-        return '({})'.format(', '.join(
-            '{}{}'.format(
-                name.replace('class_', 'class'),
-                '' if value == no_value else '="{}"'.format(self._to_string(value)))
-            for name, value in self.attributes.iteritems()
-        ))
-
-    @property
-    def _class_name(self):
-        return self.tag_name.capitalize()
-
-    def _as_code(self):
-        return '{}{}({})'.format(
-            self._class_name,
-            self._attributes_code,
-            ', '.join(child._as_code() for child in self.children),
-        )
-
 
 def make_tag_class(name, base_class=BaseTag):
     return type(name.capitalize(), (base_class, ), {'tag_name': name})
@@ -117,9 +94,9 @@ class T(object):
 
     def __getattr__(self, item):
         try:
-            return getattr(self.value, item)
+            return T(getattr(self.value, item), self.default)
         except AttributeError:
-            return self.default
+            return T(self.default)
 
     def __str__(self):
         if self.value is None:
