@@ -1,5 +1,7 @@
 # brotz
 
+### _The ideas of `brotz` have been implemented more thoroughly in https://github.com/fabiommendes/hyperpython - some more thought could still be given to the form impedence mismatch thingy though._
+
 Html templates suck, `brotz` is a lightweight, chiller, composable way to generate html in python.
 For example: `str(Ul(id='some-ul')(Li(n) for n in [1, 2, 3]))` will give `'<ul id="some-ul"><li>1</li><li>2</li><li>3</li></ul>'`.
 
